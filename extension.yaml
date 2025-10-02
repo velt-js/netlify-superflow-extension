@@ -5,3 +5,6 @@ config:
     surfaces:
       - extension-team-configuration
       - extension-top-level-site-configuration
+  build_event_handlers:
+    - onPreBuild
+    - onPostBuild

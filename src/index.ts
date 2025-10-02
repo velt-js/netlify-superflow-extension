@@ -14,6 +14,9 @@ extension.addBuildEventHandler("onPreBuild", async (event) => {
 	}
 
 	console.log("=== PreBuild Event Handler ===");
+	console.log("Site ID (from event):", event.siteId);
+	console.log("Account ID:", event.accountId);
+	console.log("Site ID (from env):", process.env.SITE_ID);
 	console.log("Team Config:", event.teamConfiguration);
 	console.log("Site Config:", event.siteConfiguration);
 	console.log("Example Secret from team config:", event.teamConfiguration?.exampleSecret);
@@ -30,6 +33,9 @@ extension.addBuildEventHandler("onPostBuild", async (event) => {
 	}
 
 	console.log("=== PostBuild Event Handler ===");
+	console.log("Site ID (from event):", event.siteId);
+	console.log("Account ID:", event.accountId);
+	console.log("Site ID (from env):", process.env.SITE_ID);
 	console.log("Team Config:", event.teamConfiguration);
 	console.log("Site Config:", event.siteConfiguration);
 	console.log("Example Secret from team config:", event.teamConfiguration?.exampleSecret);
@@ -39,6 +45,7 @@ extension.addBuildEventHandler("onPostBuild", async (event) => {
 
 	// Log all environment variables (be careful with secrets in production!)
 	console.log("All env vars:", Object.keys(process.env));
+	console.log("SITE ID..:", (process.env["SITE_ID"]));
 });
 
 export { extension };
