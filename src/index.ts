@@ -1,47 +1,44 @@
 // Documentation: https://sdk.netlify.com/docs
 
 import { NetlifyExtension } from "@netlify/sdk";
-import { withNetlifySDKContext } from "@netlify/sdk/ui/functions";
 import type { TeamConfig } from "./schema/team-config.js";
 import type { SiteConfig } from "./schema/site-config.js";
 
 const extension = new NetlifyExtension<SiteConfig, TeamConfig>();
 
-extension.addBuildEventHandler("onPreBuild", async () => {
+extension.addBuildEventHandler("onPreBuild", async (event) => {
 	// If the build event handler is not enabled, return early
 	if (!process.env["SUPERFLOW_EXTENSION_ENABLED"]) {
+		console.log("Build event handler not enabled");
 		return;
 	}
-	console.log("Hello there. 2");
 
-	console.log("context", withNetlifySDKContext)
+	console.log("=== PreBuild Event Handler ===");
+	console.log("Team Config:", event.teamConfiguration);
+	console.log("Site Config:", event.siteConfiguration);
+	console.log("Example Secret from team config:", event.teamConfiguration?.exampleSecret);
 
-	const context2 = await withNetlifySDKContext(async (req, context) => {
-		console.log("context", context)
-		return new Response(JSON.stringify({ success: true }), {
-			headers: { 'Content-Type': 'application/json' }
-		});
-	})
-	
-	console.log("context2", context2)
-
-	// withNetlifySDKContext(async (req, context) => {
-	// 	console.log("Hello there. 3");
-	// 	const { accountId, auth, client } = context as any;
-	// 	const accountInfo = await client.getAccount(accountId);
-	// 	console.log(accountInfo);
-
-	// 	// Get environment variables for the account/team
-	// 	const envVars = await client.getEnvironmentVariables({ accountId });
-	// 	console.log('Environment Variables:', envVars);
-
-	// 	return new Response(JSON.stringify({ success: true }), {
-	// 		headers: { 'Content-Type': 'application/json' }
-	// 	});
-	// })
-
+	// Access all process.env variables
+	console.log("SUPERFLOW_EXTENSION_ENABLED:", process.env["SUPERFLOW_EXTENSION_ENABLED"]);
 });
 
+extension.addBuildEventHandler("onPostBuild", async (event) => {
+	// If the build event handler is not enabled, return early
+	if (!process.env["SUPERFLOW_EXTENSION_ENABLED"]) {
+		console.log("Build event handler not enabled");
+		return;
+	}
+
+	console.log("=== PostBuild Event Handler ===");
+	console.log("Team Config:", event.teamConfiguration);
+	console.log("Site Config:", event.siteConfiguration);
+	console.log("Example Secret from team config:", event.teamConfiguration?.exampleSecret);
+
+	// Access environment variables from process.env
+	console.log("SUPERFLOW_EXTENSION_ENABLED:", process.env["SUPERFLOW_EXTENSION_ENABLED"]);
+
+	// Log all environment variables (be careful with secrets in production!)
+	console.log("All env vars:", Object.keys(process.env));
+});
 
 export { extension };
-
