@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { procedure, router } from "./trpc.js";
 import { TeamConfigSchema } from "../schema/team-config.js";
+import { SiteConfigSchema } from "../schema/site-config.js";
 
 const BUILD_EVENT_HANDLER_ENABLED_ENV_VAR = "SUPERFLOW_EXTENSION_ENABLED";
 
@@ -51,6 +52,72 @@ export const appRouter = router({
 					throw new TRPCError({
 						code: "INTERNAL_SERVER_ERROR",
 						message: "Failed to save team configuration",
+						cause: e,
+					});
+				}
+			}),
+	},
+	siteSettings: {
+		query: procedure.query(async ({ ctx: { teamId, siteId, client } }) => {
+			if (!teamId || !siteId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Both teamId and siteId are required",
+				});
+			}
+			const siteConfig = await client.getSiteConfiguration(teamId, siteId);
+			if (!siteConfig) {
+				return;
+			}
+			const result = SiteConfigSchema.safeParse(siteConfig.config);
+			if (!result.success) {
+				console.warn(
+					"Failed to parse site settings",
+					JSON.stringify(result.error, null, 2)
+				);
+			}
+			return result.data;
+		}),
+
+		mutate: procedure
+			.input(SiteConfigSchema)
+			.mutation(async ({ ctx: { teamId, siteId, client }, input }) => {
+				if (!teamId || !siteId) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Both teamId and siteId are required",
+					});
+				}
+
+				console.log("=== Saving Site Configuration ===");
+				console.log("Team ID:", teamId);
+				console.log("Site ID:", siteId);
+				console.log("Input data:", input);
+
+				try {
+					const existingConfig = await client.getSiteConfiguration(teamId, siteId);
+					console.log("Existing site config:", existingConfig);
+
+					if (!existingConfig) {
+						console.log("Creating new site configuration");
+						await client.createSiteConfiguration(teamId, siteId, input);
+					} else {
+						console.log("Updating existing site configuration");
+						await client.updateSiteConfiguration(teamId, siteId, {
+							...(existingConfig?.config || {}),
+							...input,
+						});
+					}
+
+					// Verify the save by fetching again
+					const verifyConfig = await client.getSiteConfiguration(teamId, siteId);
+					console.log("Verified saved site config:", verifyConfig);
+
+				} catch (e) {
+					console.error("Error saving site configuration:", e);
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: "Failed to save site configuration",
 						cause: e,
 					});
 				}
