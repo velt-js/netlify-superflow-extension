@@ -33,19 +33,39 @@ extension.addBuildEventHandler("onPostBuild", async (event) => {
 	}
 
 	console.log("=== PostBuild Event Handler ===");
+	console.log("Full event object:", JSON.stringify(event, null, 2));
+	console.log("Event keys:", Object.keys(event));
 	console.log("Site ID (from event):", event.siteId);
 	console.log("Account ID:", event.accountId);
 	console.log("Site ID (from env):", process.env.SITE_ID);
+	console.log("DEPLOY_ID:", process.env.DEPLOY_ID);
 	console.log("Team Config:", event.teamConfiguration);
 	console.log("Site Config:", event.siteConfiguration);
 	console.log("Example Secret from team config:", event.teamConfiguration?.exampleSecret);
 
+	// Try to manually fetch team configuration using SITE_ID from env
+	try {
+		console.log("=== Attempting to manually fetch configurations ===");
+
+		// Get the account/team ID from the site first
+		const siteId = process.env.SITE_ID;
+		if (siteId && event.client) {
+			const site = await event.client.getSite(siteId);
+			console.log("Site info:", site);
+
+			const accountId = process.env.ACCOUNT_ID;
+			if (accountId) {
+				const teamConfig = await event.client.getTeamConfiguration(accountId);
+				console.log("Manually fetched team config:", teamConfig);
+				console.log("Team config data:", teamConfig?.config);
+			}
+		}
+	} catch (error) {
+		console.error("Failed to fetch configurations:", error);
+	}
+
 	// Access environment variables from process.env
 	console.log("SUPERFLOW_EXTENSION_ENABLED:", process.env["SUPERFLOW_EXTENSION_ENABLED"]);
-
-	// Log all environment variables (be careful with secrets in production!)
-	console.log("All env vars:", Object.keys(process.env));
-	console.log("SITE ID..:", (process.env["SITE_ID"]));
 });
 
 export { extension };
