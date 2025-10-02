@@ -7,7 +7,7 @@ import type { SiteConfig } from "./schema/site-config.js";
 
 const extension = new NetlifyExtension<SiteConfig, TeamConfig>();
 
-extension.addBuildEventHandler("onPreBuild", () => {
+extension.addBuildEventHandler("onPreBuild", async () => {
 	// If the build event handler is not enabled, return early
 	if (!process.env["SUPERFLOW_EXTENSION_ENABLED"]) {
 		return;
@@ -15,21 +15,30 @@ extension.addBuildEventHandler("onPreBuild", () => {
 	console.log("Hello there. 2");
 
 	console.log("context", withNetlifySDKContext)
-	
-	withNetlifySDKContext(async (req, context) => {
-		console.log("Hello there. 3");
-		const { accountId, auth, client } = context as any;
-		const accountInfo = await client.getAccount(accountId);
-		console.log(accountInfo);
 
-		// Get environment variables for the account/team
-		const envVars = await client.getEnvironmentVariables({ accountId });
-		console.log('Environment Variables:', envVars);
-
+	const context2 = await withNetlifySDKContext(async (req, context) => {
+		console.log("context", context)
 		return new Response(JSON.stringify({ success: true }), {
 			headers: { 'Content-Type': 'application/json' }
 		});
 	})
+	
+	console.log("context2", context2)
+
+	// withNetlifySDKContext(async (req, context) => {
+	// 	console.log("Hello there. 3");
+	// 	const { accountId, auth, client } = context as any;
+	// 	const accountInfo = await client.getAccount(accountId);
+	// 	console.log(accountInfo);
+
+	// 	// Get environment variables for the account/team
+	// 	const envVars = await client.getEnvironmentVariables({ accountId });
+	// 	console.log('Environment Variables:', envVars);
+
+	// 	return new Response(JSON.stringify({ success: true }), {
+	// 		headers: { 'Content-Type': 'application/json' }
+	// 	});
+	// })
 
 });
 
