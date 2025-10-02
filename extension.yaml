@@ -1,0 +1,7 @@
+config:
+  slug: superflow-extension
+  name: superflow-extension
+  ui:
+    surfaces:
+      - extension-team-configuration
+      - extension-top-level-site-configuration
