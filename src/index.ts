@@ -11,8 +11,9 @@ extension.addBuildEventHandler("onPreBuild", () => {
 	if (!process.env["SUPERFLOW_EXTENSION_ENABLED"]) {
 		return;
 	}
-	console.log("Hello there.");
+	console.log("Hello there. 2");
 	withNetlifySDKContext(async (req, context) => {
+		console.log("Hello there. 3");
 		const { accountId, auth, client } = context as any;
 		const accountInfo = await client.getAccount(accountId);
 		console.log(accountInfo);
