@@ -6,12 +6,16 @@ import type { TeamConfig } from "./schema/team-config.js";
 import type { SiteConfig } from "./schema/site-config.js";
 
 const extension = new NetlifyExtension<SiteConfig, TeamConfig>();
+
 extension.addBuildEventHandler("onPreBuild", () => {
 	// If the build event handler is not enabled, return early
 	if (!process.env["SUPERFLOW_EXTENSION_ENABLED"]) {
 		return;
 	}
 	console.log("Hello there. 2");
+
+	console.log("context", withNetlifySDKContext)
+	
 	withNetlifySDKContext(async (req, context) => {
 		console.log("Hello there. 3");
 		const { accountId, auth, client } = context as any;

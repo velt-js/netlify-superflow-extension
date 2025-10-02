@@ -64,7 +64,7 @@ export const SiteConfiguration = () => {
       </Card>
       {buildEventHandlerEnabledForSite.data?.enabled && (
         <Card>
-          <CardTitle>Example Section for {sdk.extension.name}</CardTitle>
+          <CardTitle>EXXXXxample Section for {sdk.extension.name}</CardTitle>
           <p>This is an example site configuration.</p>
         </Card>
       )}
