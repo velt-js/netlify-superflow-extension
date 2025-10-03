@@ -53,36 +53,40 @@ extension.addBuildEventHandler("onPostBuild", async (event) => {
 
 		if (siteId && accountId && event.client) {
 			const site = await event.client.getSite(siteId);
-			// console.log("Site info:", site);
 			const siteName = site?.name;
+			const userId = (site as any)?.user_id;
 
 			const links = (site as any)?.published_deploy?.links
-			console.log("Site link: ", links.alias);
+			console.log("Site link: ", links?.alias);
 			console.log("Site Id: ", siteId);
 			console.log("Account Id: ", accountId);
 			console.log("Site Name: ", siteName);
+			console.log("Site user_id:", userId);
 
+			// Fetch account members to find user email
+			try {
+				const members = await (event.client as any).client?.wretch.url(`/accounts/${accountId}/members`).get().json();
+				console.log("Account members:", JSON.stringify(members, null, 2));
+
+				if (userId && Array.isArray(members)) {
+					const siteOwner = members.find((member: any) => member.user_id === userId);
+					if (siteOwner) {
+						console.log("Site owner email:", siteOwner.email);
+						console.log("Site owner name:", siteOwner.full_name);
+					}
+				}
+			} catch (error) {
+				console.error("Failed to fetch account members:", error);
+			}
 
 			// Fetch current configurations
 			const teamConfig = await event.client.getTeamConfiguration(accountId);
 			const siteConfig = await event.client.getSiteConfiguration(accountId, siteId);
-			// console.log("Manually fetched team config:", teamConfig);
 			console.log("Team config data:", teamConfig?.config);
 			console.log("Site config data:", siteConfig?.config);
 
-
 			const account = await event.client.getAccount(accountId);
 			console.log("Account: ", account);
-
-			// Get current user information including email
-			// The build client wraps an internal NetlifyExtensionClient that extends NetlifyClient
-			try {
-				const user = await (event.client as any).client?.getCurrentUser();
-				console.log("User email:", user?.email);
-				console.log("User info:", user);
-			} catch (error) {
-				console.error("Failed to get user info:", error);
-			}
 
 
 		} else {
