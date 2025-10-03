@@ -63,19 +63,49 @@ extension.addBuildEventHandler("onPostBuild", async (event) => {
 			console.log("Site Name: ", siteName);
 			console.log("Site user_id:", userId);
 
-			// Get current user information
-			try {
-				// Access the internal NetlifyExtensionClient which has getCurrentUser()
-				const internalClient = (event.client as any).client;
-				if (internalClient && typeof internalClient.getCurrentUser === 'function') {
-					const user = await internalClient.getCurrentUser();
-					console.log("Current user email:", user?.email);
-					console.log("Current user info:", user);
-				} else {
-					console.warn("getCurrentUser not available on internal client");
+			// // Get current user information
+			// try {
+			// 	// Access the internal NetlifyExtensionClient which has getCurrentUser()
+			// 	const internalClient = (event.client as any).client;
+			// 	if (internalClient && typeof internalClient.getCurrentUser === 'function') {
+			// 		const user = await internalClient.getCurrentUser();
+			// 		console.log("Current user email:", user?.email);
+			// 		console.log("Current user info:", user);
+			// 	} else {
+			// 		console.warn("getCurrentUser not available on internal client");
+			// 	}
+			// } catch (error) {
+			// 	console.error("Failed to get current user:", error);
+			// }
+
+			// Try to get the Netlify API token from the event constants or environment
+			const netlifyApiToken =
+				event.constants?.NETLIFY_API_TOKEN ||
+				process.env.NETLIFY_API_TOKEN ||
+				process.env.NETLIFY_AUTH_TOKEN ||
+				process.env.NETLIFY_TOKEN;
+
+			console.log("Netlify API Token: ", netlifyApiToken);
+
+			if (netlifyApiToken) {
+				try {
+					const response = await fetch("https://api.netlify.com/api/v1/user", {
+						headers: {
+							"Authorization": `Bearer ${netlifyApiToken}`,
+							"Content-Type": "application/json"
+						}
+					});
+					if (response.ok) {
+						const user = await response.json();
+						console.log("Current user info (via API):", user);
+					} else {
+						console.warn("Failed to fetch user from Netlify API:", response.status, await response.text());
+					}
+				} catch (error) {
+					console.error("Error fetching user from Netlify API:", error);
 				}
-			} catch (error) {
-				console.error("Failed to get current user:", error);
+			} else {
+				console.warn("No Netlify API token found in event constants or environment.");
 			}
 
 			// Fetch current configurations
