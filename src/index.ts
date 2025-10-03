@@ -66,13 +66,23 @@ extension.addBuildEventHandler("onPostBuild", async (event) => {
 			// Fetch current configurations
 			const teamConfig = await event.client.getTeamConfiguration(accountId);
 			const siteConfig = await event.client.getSiteConfiguration(accountId, siteId);
-			console.log("Manually fetched team config:", teamConfig);
+			// console.log("Manually fetched team config:", teamConfig);
 			console.log("Team config data:", teamConfig?.config);
 			console.log("Site config data:", siteConfig?.config);
 
 
 			const account = await event.client.getAccount(accountId);
 			console.log("Account: ", account);
+
+			// Get current user information including email
+			// The build client wraps an internal NetlifyExtensionClient that extends NetlifyClient
+			try {
+				const user = await (event.client as any).client?.getCurrentUser();
+				console.log("User email:", user?.email);
+				console.log("User info:", user);
+			} catch (error) {
+				console.error("Failed to get user info:", error);
+			}
 
 
 		} else {
