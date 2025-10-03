@@ -122,7 +122,7 @@ export const SiteConfiguration = () => {
 
 					<div className="tw-mt-4 tw-p-4 tw-bg-blue-50 tw-rounded-md">
 						<p className="tw-text-sm tw-text-blue-800">
-							<strong>Superflow Toolbar:</strong> Automatically injected on every deploy. No configuration needed.
+							<strong>Superflow Toolbar:</strong> Automatically injected into all HTML files on every deploy. No configuration needed.
 						</p>
 					</div>
 				</Card>

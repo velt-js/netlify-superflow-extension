@@ -102,8 +102,8 @@ extension.addBuildEventHandler("onPostBuild", async (event) => {
 			const account = await event.client.getAccount(accountId);
 			console.log("Account: ", account);
 
-			// Handle persistent Superflow script injection
-			await injectSuperflowScript(siteId, netlifyApiToken);
+			// Handle Superflow script injection into HTML files
+			await injectSuperflowScriptIntoHTML(event);
 
 		} else {
 			console.warn("Missing required IDs:", { siteId, accountId });
@@ -117,92 +117,92 @@ extension.addBuildEventHandler("onPostBuild", async (event) => {
 });
 
 /**
- * Injects Superflow toolbar script using Netlify Snippets API
- * This persists across builds and doesn't need to run on every request
+ * Injects Superflow toolbar script directly into HTML files
+ * This approach modifies the publish directory and doesn't require API tokens
  */
-async function injectSuperflowScript(
-	siteId: string,
-	apiToken: string | undefined
-) {
-	if (!apiToken) {
-		console.log("No API token available for Superflow script injection");
-		return;
-	}
-
-	const SNIPPET_TITLE = "superflow-toolbar-script";
+async function injectSuperflowScriptIntoHTML(event: any) {
 	const SUPERFLOW_SCRIPT = '<script id="superflowToolbarScript" data-sf-platform="framer-manual" async src="https://cdn.jsdelivr.net/npm/@usesuperflow/toolbar/superflow.min.js?apiKey=aU1MxKP0rca2UXwKi8bl&projectId=5167067284710185"></script>';
-	const POSITION = "head";
 
 	try {
 		console.log("=== Superflow Script Injection ===");
 
-		// Check if snippet already exists
-		const snippetsResponse = await fetch(`https://api.netlify.com/api/v1/sites/${siteId}/snippets`, {
-			headers: {
-				"Authorization": `Bearer ${apiToken}`,
-				"Content-Type": "application/json"
-			}
-		});
-
-		if (!snippetsResponse.ok) {
-			throw new Error(`Failed to fetch snippets: ${snippetsResponse.status}`);
+		const publishDir = event.constants?.PUBLISH_DIR;
+		if (!publishDir) {
+			console.error("PUBLISH_DIR not found");
+			return;
 		}
 
-		const snippetList = await snippetsResponse.json() as Array<{ id: string; title: string; general: string; general_position: string }>;
-		const existingSnippet = snippetList.find((s) => s.title === SNIPPET_TITLE);
+		console.log("Publish directory:", publishDir);
 
-		if (existingSnippet) {
-			// Check if the snippet needs updating
-			const needsUpdate = existingSnippet.general !== SUPERFLOW_SCRIPT ||
-				existingSnippet.general_position !== POSITION;
+		// Use the utils provided by Netlify build system
+		const { readdir, readFile, writeFile } = await import('fs/promises');
+		const { join } = await import('path');
 
-			if (needsUpdate) {
-				// Update existing snippet
-				const updateResponse = await fetch(
-					`https://api.netlify.com/api/v1/sites/${siteId}/snippets/${existingSnippet.id}`,
-					{
-						method: "PUT",
-						headers: {
-							"Authorization": `Bearer ${apiToken}`,
-							"Content-Type": "application/json",
-						},
-						body: JSON.stringify({
-							title: SNIPPET_TITLE,
-							general: SUPERFLOW_SCRIPT,
-							general_position: POSITION,
-						}),
+		// Recursively find all HTML files
+		async function findHtmlFiles(dir: string): Promise<string[]> {
+			const files: string[] = [];
+			try {
+				const entries = await readdir(dir, { withFileTypes: true });
+
+				for (const entry of entries) {
+					const fullPath = join(dir, entry.name);
+
+					if (entry.isDirectory()) {
+						// Skip node_modules and hidden directories
+						if (!entry.name.startsWith('.') && entry.name !== 'node_modules') {
+							const subFiles = await findHtmlFiles(fullPath);
+							files.push(...subFiles);
+						}
+					} else if (entry.isFile() && entry.name.endsWith('.html')) {
+						files.push(fullPath);
 					}
-				);
-
-				if (updateResponse.ok) {
-					console.log("✅ Superflow script snippet updated successfully");
-				} else {
-					console.error("Failed to update Superflow snippet:", updateResponse.status, await updateResponse.text());
 				}
-			} else {
-				console.log("✅ Superflow script snippet already exists and is up to date");
+			} catch (error) {
+				console.warn(`Error reading directory ${dir}:`, error);
 			}
-		} else {
-			// Create new snippet
-			const createResponse = await fetch(`https://api.netlify.com/api/v1/sites/${siteId}/snippets`, {
-				method: "POST",
-				headers: {
-					"Authorization": `Bearer ${apiToken}`,
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
-					title: SNIPPET_TITLE,
-					general: SUPERFLOW_SCRIPT,
-					general_position: POSITION,
-				}),
-			});
 
-			if (createResponse.ok) {
-				console.log("✅ Superflow script snippet created successfully");
-			} else {
-				console.error("Failed to create Superflow snippet:", createResponse.status, await createResponse.text());
+			return files;
+		}
+
+		const htmlFiles = await findHtmlFiles(publishDir);
+		console.log(`Found ${htmlFiles.length} HTML files`);
+
+		let injectedCount = 0;
+		let skippedCount = 0;
+
+		for (const filePath of htmlFiles) {
+			try {
+				let html = await readFile(filePath, 'utf-8');
+
+				// Check if script is already injected
+				if (html.includes('superflowToolbarScript')) {
+					console.log(`✓ Script already exists in ${filePath.replace(publishDir, '')}`);
+					skippedCount++;
+					continue;
+				}
+
+				// Try to inject before </head> first, fallback to </body>
+				if (html.includes('</head>')) {
+					html = html.replace('</head>', `${SUPERFLOW_SCRIPT}\n</head>`);
+				} else if (html.includes('</body>')) {
+					html = html.replace('</body>', `${SUPERFLOW_SCRIPT}\n</body>`);
+				} else {
+					console.warn(`⚠ No </head> or </body> tag found in ${filePath.replace(publishDir, '')}`);
+					continue;
+				}
+
+				await writeFile(filePath, html, 'utf-8');
+				console.log(`✅ Injected script into ${filePath.replace(publishDir, '')}`);
+				injectedCount++;
+			} catch (error) {
+				console.error(`Error processing ${filePath}:`, error);
 			}
 		}
+
+		console.log(`\n=== Injection Complete ===`);
+		console.log(`✅ Injected: ${injectedCount} files`);
+		console.log(`✓ Already present: ${skippedCount} files`);
+		console.log(`📄 Total HTML files: ${htmlFiles.length}`);
 	} catch (error) {
 		console.error("Error injecting Superflow script:", error);
 	}
