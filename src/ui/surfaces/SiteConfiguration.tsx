@@ -119,6 +119,12 @@ export const SiteConfiguration = () => {
 							helpText="This is a site-specific boolean value"
 						/>
 					</Form>
+
+					<div className="tw-mt-4 tw-p-4 tw-bg-blue-50 tw-rounded-md">
+						<p className="tw-text-sm tw-text-blue-800">
+							<strong>Superflow Toolbar:</strong> Automatically injected on every deploy. No configuration needed.
+						</p>
+					</div>
 				</Card>
 			)}
 		</SiteConfigurationSurface>
