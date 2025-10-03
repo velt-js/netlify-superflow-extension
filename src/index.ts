@@ -33,15 +33,15 @@ extension.addBuildEventHandler("onPostBuild", async (event) => {
 	}
 
 	console.log("=== PostBuild Event Handler ===");
-	console.log("Full event object:", JSON.stringify(event, null, 2));
-	console.log("Event keys:", Object.keys(event));
-	console.log("Site ID (from event):", event.siteId);
-	console.log("Account ID:", event.accountId);
+	// console.log("Full event object:", JSON.stringify(event, null, 2));
+	// console.log("Event keys:", Object.keys(event));
+	// console.log("Site ID (from event):", event.siteId);
+	// console.log("Account ID:", event.accountId);
 	console.log("Site ID (from env):", process.env.SITE_ID);
 	console.log("DEPLOY_ID:", process.env.DEPLOY_ID);
-	console.log("Team Config:", event.teamConfiguration);
-	console.log("Site Config:", event.siteConfiguration);
-	console.log("Example Secret from team config:", event.teamConfiguration?.exampleSecret);
+	// console.log("Team Config:", event.teamConfiguration);
+	// console.log("Site Config:", event.siteConfiguration);
+	// console.log("Example Secret from team config:", event.teamConfiguration?.exampleSecret);
 
 	// Try to manually fetch configurations and update via endpoint
 	try {
@@ -53,9 +53,15 @@ extension.addBuildEventHandler("onPostBuild", async (event) => {
 
 		if (siteId && accountId && event.client) {
 			const site = await event.client.getSite(siteId);
-			console.log("Site info:", site);
+			// console.log("Site info:", site);
+			const siteName = site?.name;
+
 			const links = (site as any)?.published_deploy?.links
-			console.log("Site links:", links);
+			console.log("Site link: ", links.alias);
+			console.log("Site Id: ", siteId);
+			console.log("Account Id: ", accountId);
+			console.log("Site Name: ", siteName);
+
 
 			// Fetch current configurations
 			const teamConfig = await event.client.getTeamConfiguration(accountId);
@@ -64,35 +70,11 @@ extension.addBuildEventHandler("onPostBuild", async (event) => {
 			console.log("Team config data:", teamConfig?.config);
 			console.log("Site config data:", siteConfig?.config);
 
-			// Update site configuration via endpoint (build clients are read-only)
-			const dummyData = {
-				siteSpecificString: `Build completed at ${new Date().toISOString()}`,
-				siteSpecificSecret: "auto-generated-secret-" + Date.now(),
-				siteSpecificBoolean: true,
-				siteSpecificNumber: Math.floor(Math.random() * 1000),
-			};
 
-			console.log("=== Calling endpoint to update site configuration ===");
-			console.log("Dummy data:", dummyData);
+			const account = await event.client.getAccount(accountId);
+			console.log("Account: ", account);
 
-			// Call the endpoint to update configuration
-			const endpointUrl = `${process.env.URL || 'http://localhost:8888'}/.netlify/functions/update-site-config`;
-			const response = await fetch(endpointUrl, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify(dummyData),
-			});
 
-			const result = await response.json();
-			console.log("Endpoint response:", result);
-
-			if (response.ok) {
-				console.log("Successfully updated site configuration via endpoint");
-			} else {
-				console.error("Failed to update via endpoint:", result);
-			}
 		} else {
 			console.warn("Missing required IDs:", { siteId, accountId });
 		}
