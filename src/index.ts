@@ -63,20 +63,19 @@ extension.addBuildEventHandler("onPostBuild", async (event) => {
 			console.log("Site Name: ", siteName);
 			console.log("Site user_id:", userId);
 
-			// Fetch account members to find user email
+			// Get current user information
 			try {
-				const members = await (event.client as any).client?.wretch.url(`/accounts/${accountId}/members`).get().json();
-				console.log("Account members:", JSON.stringify(members, null, 2));
-
-				if (userId && Array.isArray(members)) {
-					const siteOwner = members.find((member: any) => member.user_id === userId);
-					if (siteOwner) {
-						console.log("Site owner email:", siteOwner.email);
-						console.log("Site owner name:", siteOwner.full_name);
-					}
+				// Access the internal NetlifyExtensionClient which has getCurrentUser()
+				const internalClient = (event.client as any).client;
+				if (internalClient && typeof internalClient.getCurrentUser === 'function') {
+					const user = await internalClient.getCurrentUser();
+					console.log("Current user email:", user?.email);
+					console.log("Current user info:", user);
+				} else {
+					console.warn("getCurrentUser not available on internal client");
 				}
 			} catch (error) {
-				console.error("Failed to fetch account members:", error);
+				console.error("Failed to get current user:", error);
 			}
 
 			// Fetch current configurations
